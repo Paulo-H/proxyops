@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/logo.png" alt="ProxyOps" width="220" />
+  <img src="docs/images/logo-banner.png" alt="ProxyOps" width="420" />
 
   <h1>ProxyOps</h1>
 
