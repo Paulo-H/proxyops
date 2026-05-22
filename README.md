@@ -28,17 +28,17 @@ Running web-scraping fleets at scale means juggling proxies from many providers,
 
 ## Architecture
 
-```
-┌──────────────┐    HTTPS     ┌──────────────┐    SQL     ┌──────────────┐
-│  Vue 3 SPA   │ ───────────▶ │   FastAPI    │ ─────────▶ │  PostgreSQL  │
-│  (nginx)     │ ◀─────────── │  REST + JWT  │ ◀───────── │              │
-└──────────────┘              └──────────────┘            └──────────────┘
-                                     ▲
-                                     │ rotation API
-                              ┌──────┴───────┐
-                              │   Scraping   │
-                              │    Robots    │
-                              └──────────────┘
+```text
++--------------+   HTTPS    +--------------+    SQL    +--------------+
+|  Vue 3 SPA   | ---------> |   FastAPI    | --------> |  PostgreSQL  |
+|  (nginx)     | <--------- |  REST + JWT  | <-------- |   (pg 16)    |
++--------------+            +--------------+           +--------------+
+                                  ^
+                                  | rotation API (X-Robot-Key)
+                           +--------------+
+                           |   Scraping   |
+                           |    Robots    |
+                           +--------------+
 ```
 
 - **Backend** — FastAPI + SQLAlchemy 2.0 + Alembic migrations + JWT auth with role-based access (`admin`, `operator`, `viewer`).
