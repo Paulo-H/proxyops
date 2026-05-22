@@ -41,7 +41,7 @@ Running web-scraping fleets at scale means juggling proxies from many providers,
                            +--------------+
 ```
 
-- **Backend** — FastAPI + SQLAlchemy 2.0 + Alembic migrations + JWT auth with role-based access (`admin`, `operator`, `viewer`).
+- **Backend** — FastAPI + SQLAlchemy 2.0 + JWT auth with role-based access (`admin`, `operator`, `viewer`). Tables are created on startup; a seed admin and default strategy presets are inserted on first boot.
 - **Frontend** — Vue 3 + Vite + TypeScript + Pinia + Tailwind CSS, fully responsive down to mobile.
 - **Database** — PostgreSQL 16 with indices tuned for time-series log queries.
 - **Runtime** — Three containers wired up with `docker-compose`.
@@ -92,9 +92,10 @@ Change the password from **Settings → Users** immediately.
 ## Features
 
 ### Proxy inventory
-- Multi-provider catalog with contact, billing notes, and renewal dates.
+- Multi-provider catalog with website, contact e-mail, and free-form notes.
 - Per-proxy `host:port`, protocol (`http`, `https`, `socks4`, `socks5`), credentials, expiration date, and free-form metadata (JSON).
-- Bulk-import via CSV.
+- Bulk-import by pasting `host:port` or `host:port:user:pass` lines.
+- Expiration tracking with an "expiring in N days" filter.
 
 ### Robots & groups
 - Each robot is a first-class entity with an API key.
@@ -115,8 +116,32 @@ Rotation is invoked by robots with a single `POST /api/v1/rotation/acquire`. Rob
 
 ### Observability
 - **Dashboard** — success-rate timeseries, top domains, top failing proxies, status-code distribution.
-- **Filters** — robot, group, domain, status-code range, time range.
+- **Filters** — robot, group, domain, strategy, status-code range, time range.
+- **Comparison** — success rate / volume / latency broken down by strategy, robot, provider, group or host.
 - **Robot behavior** — every status code the robot observed is stored and aggregatable.
+
+## Benchmarks
+
+The rotation strategies were evaluated in the master's research behind ProxyOps:
+four controlled 24-hour simulation scenarios **and a real-world deployment of
+549,114 requests over 7 days** (10 robots, commercial residential proxies). The
+four strategies shipped in ProxyOps ranked as follows (the full seven-strategy
+study is in the [paper](#references)):
+
+| Strategy              | Real-world success | Simulation (mean) |
+| --------------------- | ------------------ | ----------------- |
+| `bayesian_beta`       | **76.0%**          | 92.5%             |
+| `exponential_backoff` | 71.9%              | 91.6%             |
+| `round_robin`         | 36.3%              | 69.7%             |
+| `random`              | 31.5%              | 68.1%             |
+
+- On real traffic, **Bayesian Beta more than doubled round-robin's success rate** (76% vs 36%).
+- In the "permanently-failing proxies" scenario, Beta logged **17 errors vs 10,663 for Random** over 24 h (>600× fewer).
+- **Exponential Backoff wins under rate-limiting** (best in the blocked scenario) — which is why it ships as a first-class option.
+- Adaptive strategies stayed the most consistent (Beta coefficient of variation 0.19 vs >0.49 for static rotation).
+
+> Figures from the thesis / CBIC 2025 paper (see [References](#references)).
+> Strategy rankings were preserved from simulation to production.
 
 ## API examples
 
@@ -154,18 +179,27 @@ npm install
 npm run dev
 ```
 
-### Migrations
+### Database schema
+The backend creates all tables on startup via SQLAlchemy `create_all()` — there
+are no versioned migrations yet. Because of that, a schema change to an existing
+table currently requires recreating the database volume:
+
 ```bash
-cd backend
-alembic revision --autogenerate -m "describe change"
-alembic upgrade head
+docker compose down -v && docker compose up -d --build
 ```
 
-### Tests
+(Wiring up Alembic for incremental migrations is on the roadmap.)
+
+### End-to-end test
+A self-contained script exercises every endpoint and simulates a scraping robot
+(acquire → outcome → release), then asserts the metrics and comparison endpoints:
+
 ```bash
-cd backend && pytest
-cd frontend && npm test
+pip install requests
+python scripts/test_e2e.py --robot 200 --keep   # --keep leaves data for the dashboard
 ```
+
+See [`scripts/README.md`](scripts/README.md) for options.
 
 ## Project layout
 
@@ -180,14 +214,15 @@ proxyops/
 │   │   ├── schemas/          Pydantic DTOs
 │   │   └── services/
 │   │       └── strategies/   rotation strategies
-│   └── alembic/              migrations
+│   └── pyproject.toml
 ├── frontend/                 Vue 3 SPA
 │   └── src/
 │       ├── api/              typed API client
-│       ├── components/       reusable UI
+│       ├── components/       reusable UI (layout, charts, ui)
 │       ├── stores/           Pinia
 │       └── views/            page-level components
-├── docs/                     additional docs
+├── scripts/                  end-to-end test (test_e2e.py)
+├── docs/                     architecture, robot integration, images
 └── docker-compose.yml
 ```
 
