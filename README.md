@@ -240,6 +240,12 @@ If you use ProxyOps or its rotation strategies in academic work, please cite:
 }
 ```
 
+## Author
+
+**Paulo Henrique Cardoso de Souza**
+Questions, ideas, or collaboration? Reach out on
+[LinkedIn](https://www.linkedin.com/in/paulo-henrique-cardoso-de-souza-ti/).
+
 ## License
 
 MIT
