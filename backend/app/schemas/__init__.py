@@ -16,6 +16,7 @@ from app.schemas.strategy import (
     StrategyConfigUpdate,
     StrategyConfigOut,
     StrategyKindInfo,
+    StrategyPreviewRequest,
 )
 from app.schemas.rotation import (
     AcquireRequest,
@@ -62,6 +63,7 @@ __all__ = [
     "StrategyConfigUpdate",
     "StrategyConfigOut",
     "StrategyKindInfo",
+    "StrategyPreviewRequest",
     "AcquireRequest",
     "AcquireResponse",
     "ReleaseRequest",

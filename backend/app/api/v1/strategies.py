@@ -9,8 +9,10 @@ from app.schemas import (
     StrategyConfigOut,
     StrategyConfigUpdate,
     StrategyKindInfo,
+    StrategyPreviewRequest,
 )
 from app.services.strategies import list_strategy_kinds
+from app.services.strategies.registry import resolve_raw_parameters
 
 router = APIRouter()
 
@@ -18,6 +20,20 @@ router = APIRouter()
 @router.get("/kinds", response_model=list[StrategyKindInfo], summary="Available rotation algorithms and their parameters")
 def list_kinds(_: CurrentUser) -> list[StrategyKindInfo]:
     return list_strategy_kinds()
+
+
+@router.post(
+    "/preview",
+    response_model=dict,
+    summary="Resolve a preset's effective math parameters",
+    description=(
+        "Given a kind and parameters (raw or simple `{mode: 'simple', ...}`), returns "
+        "the effective raw parameters the strategy would run with. Useful to show what "
+        "the friendly dials map to, or to convert a Simple preset into Advanced."
+    ),
+)
+def preview(body: StrategyPreviewRequest, _: CurrentUser) -> dict:
+    return resolve_raw_parameters(body.kind, body.parameters)
 
 
 @router.get("", response_model=list[StrategyConfigOut])

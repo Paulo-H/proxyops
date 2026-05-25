@@ -89,6 +89,7 @@ export interface StrategyKindInfo {
   label: string;
   description: string;
   parameters: StrategyParameterSpec[];
+  simple_parameters: StrategyParameterSpec[];
 }
 
 export interface StrategyConfig {

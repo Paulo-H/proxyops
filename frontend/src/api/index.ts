@@ -84,6 +84,9 @@ export const api = {
 
   // ---------- strategies ----------
   listStrategyKinds() { return http.get<StrategyKindInfo[]>('/strategies/kinds').then((r) => r.data); },
+  previewStrategy(payload: { kind: string; parameters: Record<string, unknown> }) {
+    return http.post<Record<string, unknown>>('/strategies/preview', payload).then((r) => r.data);
+  },
   listStrategyConfigs() { return http.get<StrategyConfig[]>('/strategies').then((r) => r.data); },
   createStrategyConfig(payload: any) { return http.post<StrategyConfig>('/strategies', payload).then((r) => r.data); },
   updateStrategyConfig(id: number, payload: any) { return http.patch<StrategyConfig>(`/strategies/${id}`, payload).then((r) => r.data); },

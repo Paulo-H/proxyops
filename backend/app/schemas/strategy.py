@@ -44,3 +44,11 @@ class StrategyKindInfo(BaseModel):
     label: str
     description: str
     parameters: list[StrategyParameterSpec]
+    # Friendly 1-10 dials that map onto `parameters`. Empty when the kind
+    # has no simple mode (then only advanced parameters are available).
+    simple_parameters: list[StrategyParameterSpec] = []
+
+
+class StrategyPreviewRequest(BaseModel):
+    kind: StrategyKind
+    parameters: dict[str, Any] = {}
