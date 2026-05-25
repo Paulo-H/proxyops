@@ -201,8 +201,11 @@ def phase_group(state: State, strategy_id: int) -> int:
 
 def phase_proxies(state: State, provider_id: int, group_id: int) -> list[int]:
     step("Proxies (bulk import)")
+    # Randomize the host octets so re-runs (especially with --keep) don't collide
+    # on the (host, port, username) unique constraint.
+    base = random.randint(1, 250)
     rows = [
-        {"host": f"10.0.0.{i}", "port": 8080 + i, "protocol": "http",
+        {"host": f"10.{base}.0.{i}", "port": 8080 + i, "protocol": "http",
          "username": f"u{i}", "password": f"p{i}"}
         for i in range(1, 6)
     ]

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.deps import AdminOrOperator, CurrentUser
@@ -93,7 +94,14 @@ def create_proxy(
     )
     _assign_groups(db, proxy, body.group_ids)
     db.add(proxy)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "A proxy with the same host, port and username already exists.",
+        )
     db.refresh(proxy)
     return _serialize(proxy)
 
@@ -124,7 +132,14 @@ def bulk_create(
         proxy.groups = list(groups)
         db.add(proxy)
         created.append(proxy)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "One or more proxies already exist (same host, port and username).",
+        )
     for p in created:
         db.refresh(p)
     return [_serialize(p) for p in created]
